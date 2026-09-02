@@ -17,3 +17,4 @@ else
     echo "Build failed."
     exit 1
 fi
+./box/busybox --install -s ./bin
