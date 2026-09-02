@@ -27,9 +27,7 @@ static int change_directory(const char *dir)
     char path[PATH_MAX];
     const char *target = dir;
 
-    /*
-     * No argument or "~" means $HOME.
-     */
+
     if (dir == NULL || strcmp(dir, "~") == 0) {
         target = getenv("HOME");
 
@@ -37,9 +35,7 @@ static int change_directory(const char *dir)
             target = "/";
         }
     }
-    /*
-     * Expand ~/something.
-     */
+
     else if (strncmp(dir, "~/", 2) == 0) {
         const char *home = getenv("HOME");
 
@@ -76,17 +72,6 @@ int main(void)
     char exe_path[PATH_MAX];
     char bin_path[PATH_MAX];
 
-    /*
-     * Find the directory containing RescueBox itself.
-     *
-     * This means RescueBox can be launched from anywhere:
-     *
-     *   /home/user/box/BOX
-     *
-     * while still finding:
-     *
-     *   /home/user/box/bin/
-     */
     ssize_t len = readlink(
         "/proc/self/exe",
         exe_path,
@@ -100,9 +85,6 @@ int main(void)
 
     exe_path[len] = '\0';
 
-    /*
-     * Remove the executable filename.
-     */
     char *slash = strrchr(exe_path, '/');
 
     if (slash == NULL) {
@@ -115,9 +97,6 @@ int main(void)
 
     *slash = '\0';
 
-    /*
-     * Build the path to bin/.
-     */
     int written = snprintf(
         bin_path,
         sizeof(bin_path),
@@ -136,34 +115,19 @@ int main(void)
         printf("> ");
         fflush(stdout);
 
-        /*
-         * Read a command.
-         *
-         * Ctrl+D / EOF exits RescueBox.
-         */
+
         if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("\n");
             break;
         }
 
-        /*
-         * Remove the newline.
-         */
+
         input[strcspn(input, "\n")] = '\0';
 
-        /*
-         * Ignore empty commands.
-         */
+
         if (input[0] == '\0')
             continue;
 
-        /*
-         * Split the command into arguments.
-         *
-         * This is intentionally simple for now.
-         * It does not yet implement shell quoting,
-         * pipes, redirection, variables, etc.
-         */
         char *args[RB_MAX_ARGS];
         int arg_count = 0;
 
@@ -186,21 +150,13 @@ int main(void)
             break;
         }
 
-        /*
-         * Built-in: help
-         */
+
         if (strcmp(args[0], "help") == 0) {
             print_help();
             continue;
         }
 
-        /*
-         * Built-in: cd
-         *
-         * This MUST be handled by RescueBox itself.
-         * A child process cannot change the parent's
-         * working directory.
-         */
+
         if (strcmp(args[0], "cd") == 0) {
             if (arg_count > 2) {
                 fprintf(stderr, "cd: too many arguments\n");
@@ -213,9 +169,6 @@ int main(void)
             continue;
         }
 
-        /*
-         * Build the path to the requested program.
-         */
         char program[PATH_MAX];
 
         written = snprintf(
@@ -235,17 +188,13 @@ int main(void)
             continue;
         }
 
-        /*
-         * Check that the program exists and is executable.
-         */
+
         if (access(program, X_OK) != 0) {
             printf("%s: command not found\n", args[0]);
             continue;
         }
 
-        /*
-         * Create a child process.
-         */
+
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -253,15 +202,10 @@ int main(void)
             continue;
         }
 
-        /*
-         * Child process.
-         */
         if (pid == 0) {
             execv(program, args);
 
-            /*
-             * execv() only returns when it fails.
-             */
+     
             fprintf(
                 stderr,
                 "RescueBox: %s: %s\n",
@@ -272,9 +216,7 @@ int main(void)
             _exit(127);
         }
 
-        /*
-         * Parent process waits for the command.
-         */
+
         int status;
 
         if (waitpid(pid, &status, 0) < 0) {
